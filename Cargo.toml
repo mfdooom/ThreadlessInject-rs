@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 base64 = "0.21.0"
 libaes = "0.6.4"
-dinvoke = { path = "../DInvoke_rs/dinvoke_rs/dinvoke" }
+dinvoke = { git = "https://github.com/Kudaes/DInvoke_rs", package = "dinvoke" }
 clap = { version = "4.3.5", features = ["derive"] }
 
 [dependencies.windows]
