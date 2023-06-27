@@ -7,7 +7,7 @@ Rust port of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/)
 
 Since we are using [LITCRYPT](https://github.com/anvie/litcrypt.rs) plugin to obfuscate string literals, it is required to set up the environment variable LITCRYPT_ENCRYPT_KEY before compiling the code:
 
-	C:\Users\User\Desktop\DInvoke.rs\dinvoke_rs> set LITCRYPT_ENCRYPT_KEY="yoursupersecretkey"
+	C:\Users\User\Desktop\ThreadlessInject-rs set LITCRYPT_ENCRYPT_KEY="yoursupersecretkey"
 
 ```
 Usage: threadless_inject_rs.exe [OPTIONS] --pid <PID> --dll <DLL> --export <EXPORT>
