@@ -1,16 +1,12 @@
 [package]
-name = "threadless_inject_rs"
+name = "memory"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = "0.21.0"
-libaes = "0.6.4"
 dinvoke = { git = "https://github.com/Kudaes/DInvoke_rs", package = "dinvoke" }
-clap = { version = "4.3.5", features = ["derive"] }
-memory = { path = "memory" }
 
 [dependencies.windows]
 version = "0.48"
