@@ -18,7 +18,7 @@ Options:
   -s, --shellcode-file <SHELLCODE_FILE>
           Path for x64 shellcode paylod (default calc payload will be used if not specified)
   -d, --dll <DLL>
-          DLL that contains the export to patch
+          DLL that contains the export to patch (must be KnownDLL)
   -e, --export <EXPORT>
           Exported function that will be hijacked
   -h, --help
