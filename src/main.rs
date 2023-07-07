@@ -26,7 +26,7 @@ struct Args {
     #[arg(short, long)]
     shellcode_file: Option<String>,
 
-    /// DLL that contains the export to patch
+    /// DLL that contains the export to patch (must be KnownDLL)
     #[arg(short, long)]
     dll: String,
        
