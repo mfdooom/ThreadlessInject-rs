@@ -1,7 +1,7 @@
 
 # ThreadlessInject-rs
 
-Rust port of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/)
+A rust implementation of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/). This implementation uses [Dinvoke_rs](https://github.com/Kudaes/DInvoke_rs/) to call the NTAPI functions directly rather than going through the Windows API.
 
 # Usage
 
