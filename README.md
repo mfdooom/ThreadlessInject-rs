@@ -1,7 +1,11 @@
 
 # ThreadlessInject-rs
 
-A rust implementation of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/). This implementation uses [Dinvoke_rs](https://github.com/Kudaes/DInvoke_rs/) to call the NTAPI functions directly rather than going through the Windows API.
+A rust implementation of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/). This implementation uses [Dinvoke_rs](https://github.com/Kudaes/DInvoke_rs/) to call the NTAPI functions directly rather than going through the Windows API. I wanted build this to get more familiar with the Rust programming language and function hooking. 
+
+# About
+
+Threadless Injection works by performing remote memory allocation and writing, however instead of remotley executing the code we hook a loaded DLL export function and wait for the process to legitimatley make the API call for that function. 
 
 # Usage
 
