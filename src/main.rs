@@ -1,6 +1,5 @@
 use windows::Win32::Foundation::HANDLE;
-use windows::Win32::System::{LibraryLoader, Threading};
-use windows::core::{PCSTR};
+use windows::Win32::System::Threading;
 use std::ffi::c_void;
 use std::path::Path;
 
@@ -109,8 +108,15 @@ fn main() -> Result<(), String> {
 
     println!("[*] Opened process with pid {}", &args.pid);
 
-    let hmodule = remote_modules::get_remote_module_handle(target_process_handle, args.dll.clone()).unwrap();
-    let export_address = remote_modules::get_remote_proc_address(target_process_handle, hmodule, args.export.clone(), 0, false).unwrap();
+    let hmodule = match remote_modules::get_remote_module_handle(target_process_handle, args.dll.clone()){
+        Ok(x) => x,
+        Err(_) => return Err(format!("Failed to open handle to DLL {}", &args.dll))
+    };
+    
+    let export_address = match remote_modules::get_remote_proc_address(target_process_handle, hmodule, args.export.clone(), 0, false){
+        Ok(x) => x,
+        Err(_) => return Err(format!("Failed to find export {} in dll {}", &args.export, &args.dll)),
+    };
 
     println!("[*] Found {}!{} at @{:x}", &args.dll, &args.export, export_address);
 

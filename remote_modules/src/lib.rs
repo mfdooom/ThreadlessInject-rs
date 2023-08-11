@@ -7,7 +7,7 @@ use windows::Win32::System::SystemServices::{IMAGE_DOS_HEADER, IMAGE_EXPORT_DIRE
 use windows::Win32::System::ProcessStatus;
 use windows::Win32::System::Diagnostics::Debug::{ ReadProcessMemory, IMAGE_FILE_HEADER, IMAGE_OPTIONAL_HEADER64, IMAGE_DIRECTORY_ENTRY_EXPORT, IMAGE_DATA_DIRECTORY};
 
-pub unsafe fn get_remote_module_handle(target_process_handle: HANDLE, dll: String) -> Result<HMODULE, String>{
+pub unsafe fn get_remote_module_handle(target_process_handle: HANDLE, dll: String) -> Result<HMODULE, ()>{
 
     let mut modules:[HMODULE; 1024] = std::mem::zeroed();
     let mut lpcbneeded = 0u32;
@@ -22,13 +22,13 @@ pub unsafe fn get_remote_module_handle(target_process_handle: HANDLE, dll: Strin
         let mod_name_len = lpfilename.iter().position(|&r| r == 0).unwrap();
         let mod_name_str = String::from_utf8(lpfilename[0..mod_name_len].to_vec()).unwrap();
         if mod_name_str.to_lowercase().contains(&dll){
-            break;
+            return Ok(modules[i as usize])
         }
 
         i = i + 1;
-    }
-    Ok(modules[i as usize])
-
+    } 
+    
+    Err(())
 }
     
 pub unsafe fn get_remote_proc_address(target_process_handle: HANDLE, hmodule: HMODULE, proc_name: String, ordinal: usize, use_ordinal: bool) -> Result<usize, ()>{
