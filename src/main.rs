@@ -91,16 +91,6 @@ fn main() -> Result<(), String> {
     
     unsafe{
     
-    // let hmodule = match LibraryLoader::GetModuleHandleA(PCSTR(format!("{}\0", &args.dll).as_mut_ptr())){
-    //     Ok(x) => x,
-    //     Err(_) => return Err(format!("Failed to open handle to DLL {}", &args.dll))
-    // };
-    
-    // let export_address: usize = match LibraryLoader::GetProcAddress(hmodule, PCSTR(format!("{}\0", &args.export).as_mut_ptr())){
-    //     Some(x) =>  std::mem::transmute::<unsafe extern "system" fn() -> isize, usize>(x),
-    //     None => return Err(format!("Failed to find export {} in dll {}", &args.export, &args.dll)),
-    // };
-
     let target_process_handle = match Threading::OpenProcess(Threading::PROCESS_ALL_ACCESS, false, args.pid){
         Ok(x) => x,
         Err(_) => return Err(format!("Failed to get handle to handle to pid {}", &args.pid))

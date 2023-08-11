@@ -1,7 +1,7 @@
 
 # ThreadlessInject-rs
 
-A rust implementation of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/). This implementation uses [Dinvoke_rs](https://github.com/Kudaes/DInvoke_rs/) to call the NTAPI functions directly rather than going through the Windows API. I wanted build this to get more familiar with the Rust programming language and function hooking. 
+A rust implementation of [ThreadlessInject](https://github.com/CCob/ThreadlessInject/). This implementation uses [Dinvoke_rs](https://github.com/Kudaes/DInvoke_rs/) to call the NTAPI functions directly rather than going through the Windows API. Additionally this implementation supports remote module enumeration, so the target DLL does not need to be a KnownDLL. I wanted build this to get more familiar with the Rust programming language and function hooking. 
 
 # About
 
@@ -22,7 +22,7 @@ Options:
   -s, --shellcode-file <SHELLCODE_FILE>
           Path for x64 shellcode paylod (default calc payload will be used if not specified)
   -d, --dll <DLL>
-          DLL that contains the export to patch (must be KnownDLL)
+          DLL that contains the export to patch
   -e, --export <EXPORT>
           Exported function that will be hijacked
   -h, --help
